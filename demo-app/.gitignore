@@ -1,0 +1,13 @@
+# Secrets — NEVER commit API keys
+.env
+.env.local
+.env*.local
+*.key
+
+# Dependencies & build output
+node_modules/
+.next/
+out/
+
+# macOS
+.DS_Store
