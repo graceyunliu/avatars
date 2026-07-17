@@ -15,7 +15,7 @@ export async function POST(request) {
           {
             role: "system",
             content:
-              "Translate the given German text to natural English. Output ONLY the translation, nothing else. If the text is already English or mixed, translate the German parts and keep the English parts.",
+              "Translate the given German text to natural English. Output ONLY the translation, nothing else. If the text is already English or mixed, translate the German parts and keep the English parts. Context: the text comes from a formal one-on-one conversation between a clerk and a customer, so 'Sie/Ihr/Ihre' is almost always the formal 'you/your' (not 'they/she'): 'Ihr Name ist Grace' → 'Your name is Grace', 'Sie sind verheiratet' → 'You are married'.",
           },
           { role: "user", content: text },
         ],
