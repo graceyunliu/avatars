@@ -11,3 +11,6 @@ out/
 
 # macOS
 .DS_Store
+
+# Eval reports — generated locally from real (paid) API calls, not for commit
+evals/report.md
