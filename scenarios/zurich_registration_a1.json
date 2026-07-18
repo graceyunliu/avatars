@@ -1,0 +1,118 @@
+{
+  "id": "zurich-registration-a1",
+  "title": "Registering at the Municipal Office",
+  "location": "Zurich, Switzerland",
+  "target_language": "de-CH",
+  "feedback_language": "en",
+  "cefr_level": "A1",
+  "learner_profile": {
+    "native_language": "English",
+    "nationality": "American",
+    "reason_for_move": "Work",
+    "immigration_context": "Non-EU/EFTA"
+  },
+  "avatar": {
+    "name": "Matteo",
+    "role": "Municipal registration clerk (Personenmeldeamt Zurich)",
+    "tone": ["friendly", "businesslike", "patient"]
+  },
+  "mission": "Register your arrival and understand which documents and next steps are required.",
+  "learning_objectives": [
+    "State the purpose of the visit (registration)",
+    "Give name, address, and arrival date understandably",
+    "Understand which documents are still needed",
+    "Understand the fee",
+    "Understand what happens after registration"
+  ],
+  "preparation_phrases": [
+    {"de": "Ich möchte mich anmelden.", "en": "I would like to register."},
+    {"de": "Ich habe einen Termin um … Uhr.", "en": "I have an appointment at … o'clock."},
+    {"de": "Ich bin am … angekommen.", "en": "I arrived on …"},
+    {"de": "Ich wohne an der …", "en": "I live at …"},
+    {"de": "Ich arbeite bei …", "en": "I work at …"},
+    {"de": "Ich habe meinen Pass und meinen Arbeitsvertrag.", "en": "I have my passport and my employment contract."},
+    {"de": "Welche Dokumente brauche ich noch?", "en": "Which documents do I still need?"},
+    {"de": "Wie viel kostet das?", "en": "How much does that cost?"},
+    {"de": "Können Sie das bitte wiederholen?", "en": "Could you please repeat that?"},
+    {"de": "Können Sie bitte langsamer sprechen?", "en": "Could you please speak more slowly?"}
+  ],
+  "conversation_stages": [
+    {
+      "order": 1,
+      "name": "greeting_and_appointment",
+      "description": "Clerk greets once with 'Grüezi', asks exactly one question: whether the learner has an appointment. Learner states purpose (anmelden) and confirms appointment."
+    },
+    {
+      "order": 2,
+      "name": "name",
+      "description": "Clerk asks for the learner's name, requests spelling only if unclear."
+    },
+    {
+      "order": 3,
+      "name": "address",
+      "description": "Clerk asks for the learner's address in Zurich. Temporary accommodation (hotel, sublet) is acceptable."
+    },
+    {
+      "order": 4,
+      "name": "arrival_and_reason",
+      "description": "Clerk asks when the learner arrived, then separately why they are in Switzerland. If work is mentioned, clerk may note registration must happen before the first working day."
+    },
+    {
+      "order": 5,
+      "name": "family_status",
+      "description": "Clerk asks about marital status, then separately about children."
+    },
+    {
+      "order": 6,
+      "name": "documents_and_insurance",
+      "description": "Clerk asks which documents the learner brought, confirms passport with visa and employment contract are sufficient, explains that a rental contract or landlord confirmation and one passport photo are still needed. Clerk asks about Swiss health insurance; if not yet arranged, explains the 3-month deadline."
+    },
+    {
+      "order": 7,
+      "name": "fee_and_next_steps",
+      "description": "Clerk states the fee is CHF 50. Explains simply: confirmation issued now, then a biometrics appointment at the cantonal migration office, then the permit card arrives by post."
+    },
+    {
+      "order": 8,
+      "name": "closing",
+      "description": "Clerk confirms registration is complete or states what is still needed, then closes politely. Ends the role-play and triggers summary generation."
+    }
+  ],
+  "success_criteria": [
+    "Learner stated the purpose of the visit (registration)",
+    "Learner gave name, address, and arrival date understandably",
+    "Conversation reached what documents are still needed or what happens next"
+  ],
+  "factual_constraints": [
+    "Registration is required within 14 days of arrival",
+    "Registration must happen before the first working day",
+    "Health insurance must be arranged within 3 months of registration",
+    "Required documents: passport with visa, employment contract, rental contract or landlord confirmation, one passport photo",
+    "The fee at this office is CHF 50",
+    "After registration: biometrics appointment at the cantonal migration office, then the permit card (Aufenthaltsbewilligung) arrives by post"
+  ],
+  "help_rules": {
+    "repeat": "Repeat the last sentence more slowly or with simpler words.",
+    "english_help": "If the learner says they don't understand, asks for English, or answers in English a second time: give the English translation of the current question once, then repeat the German question.",
+    "speak_slower": "If requested, use slower speech for the rest of the conversation.",
+    "max_repetitions_same_question": 2
+  },
+  "feedback_rules": {
+    "tone": ["warm", "encouraging", "specific", "supportive"],
+    "max_words": 250,
+    "sections": [
+      "Mission result",
+      "What you did well",
+      "Three things to improve",
+      "One word to practice",
+      "Phrase to remember",
+      "Next step"
+    ],
+    "result_mapping": {
+      "3": "Mission complete!",
+      "2": "Almost there.",
+      "0-1": "Good try — let's run it again."
+    }
+  },
+  "estimated_duration_minutes": 4
+}
