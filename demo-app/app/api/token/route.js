@@ -22,7 +22,7 @@ export async function GET() {
                 // Enables transcripts of the learner's speech (server events)
                 transcription: { model: "gpt-4o-transcribe" },
               },
-              output: { voice: "marin" },
+              output: { voice: "cedar" },
             },
           },
         }),
