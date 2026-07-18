@@ -192,9 +192,12 @@ export default function Home() {
   const [lines, setLines] = useState([]); // {id, role, de, en}
   const [showPhrases, setShowPhrases] = useState(false); // in-conversation phrase panel
   const [summary, setSummary] = useState(null); // null | "loading" | "failed" | text
+  const [coachNote, setCoachNote] = useState(null); // Matteo's audio-based impression
   const pcRef = useRef(null);
   const micRef = useRef(null);
   const audioRef = useRef(null);
+  const dcRef = useRef(null);
+  const coachWaiter = useRef(null); // resolver for the out-of-band coach response
   const nextId = useRef(1);
   const linesRef = useRef([]); // mirror of lines, readable inside stop()
 
@@ -238,6 +241,7 @@ export default function Home() {
       pc.addTrack(ms.getTracks()[0]);
 
       const dc = pc.createDataChannel("oai-events");
+      dcRef.current = dc;
       dc.addEventListener("message", (e) => {
         const event = JSON.parse(e.data);
         console.log(event.type, event); // dev logging — remove before demo day
@@ -246,6 +250,13 @@ export default function Home() {
         }
         if (event.type === "response.output_audio_transcript.done") {
           addLine("assistant", event.transcript);
+        }
+        // Out-of-band coach response (audio-based pronunciation impression)
+        if (event.type === "response.done" && event.response?.metadata?.topic === "coach") {
+          const item = event.response.output?.[0];
+          const text =
+            item?.content?.map((c) => c.text || c.transcript || "").join(" ").trim() || null;
+          coachWaiter.current?.(text);
         }
       });
       dc.addEventListener("open", () => {
@@ -272,10 +283,42 @@ export default function Home() {
   }
 
   async function stop() {
+    setPhase("ended");
+
+    // 1. Before hanging up: ask Matteo (out-of-band, text-only, fail-soft)
+    //    what he HEARD — he has the actual audio in his session context.
+    //    The role-play conversation is not affected.
+    try {
+      if (dcRef.current?.readyState === "open") {
+        const note = await Promise.race([
+          new Promise((resolve) => {
+            coachWaiter.current = resolve;
+            dcRef.current.send(
+              JSON.stringify({
+                type: "response.create",
+                response: {
+                  conversation: "none",
+                  metadata: { topic: "coach" },
+                  output_modalities: ["text"],
+                  instructions:
+                    "Stop role-playing for this one response. You are a language coach reviewing the learner's spoken German from the ENTIRE conversation you just had — every one of their turns from greeting to goodbye, not just the last thing they said. Based on their actual pronunciation across the whole session: in English, max 60 words, name 1-2 specific German words or sounds that gave them the most trouble (with a simple tip each), and 1 thing they pronounced well. Be concrete and encouraging. If you truly heard too little speech across the whole conversation, say so honestly.",
+                },
+              })
+            );
+          }),
+          new Promise((resolve) => setTimeout(() => resolve(null), 8000)), // fail-soft timeout
+        ]);
+        if (note) setCoachNote(note);
+      }
+    } catch (e) {
+      console.error("Coach note failed (non-fatal):", e);
+    }
+
+    // 2. Now hang up
     micRef.current?.getTracks().forEach((t) => t.stop());
     pcRef.current?.close();
     pcRef.current = null;
-    setPhase("ended");
+    dcRef.current = null;
 
     // Generate the session summary (task B4) from the transcript
     const transcript = linesRef.current.map((l) => `${l.role}: ${l.de}`).join("\n");
@@ -298,6 +341,7 @@ export default function Home() {
     setLines([]);
     linesRef.current = [];
     setSummary(null);
+    setCoachNote(null);
     setPhase("prep");
   }
 
@@ -335,6 +379,22 @@ export default function Home() {
                   <p style={{ margin: 0, color: "#b45309" }}>
                     Couldn&apos;t generate feedback this time — your transcript is below.
                   </p>
+                </div>
+              )}
+              {coachNote && (
+                <div style={{ ...card(), background: "#eff6ff", borderColor: "#bfdbfe" }}>
+                  <div
+                    style={{
+                      fontSize: 13,
+                      color: "#1e40af",
+                      textTransform: "uppercase",
+                      letterSpacing: 1,
+                      marginBottom: 4,
+                    }}
+                  >
+                    🎧 What Matteo heard
+                  </div>
+                  <p style={{ margin: 0, lineHeight: 1.5 }}>{coachNote}</p>
                 </div>
               )}
               {summary && summary !== "loading" && summary !== "failed" && (
