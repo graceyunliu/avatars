@@ -27,7 +27,7 @@ function parseSummary(text) {
 }
 
 // ---- Prep screen
-function PrepScreen({ onStart, connecting }) {
+function PrepScreen({ onStart, connecting, narrow }) {
   const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
@@ -46,10 +46,10 @@ function PrepScreen({ onStart, connecting }) {
         </p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "200px 1fr", borderTop: `1px solid ${T.line}` }}>
-        <div style={{ padding: "14px 18px", borderRight: `1px solid ${T.line}` }}>
+      <div style={{ display: "grid", gridTemplateColumns: narrow ? "1fr" : "200px 1fr", borderTop: `1px solid ${T.line}` }}>
+        <div style={{ padding: "14px 18px", borderRight: narrow ? "none" : `1px solid ${T.line}` }}>
           <SectionLabel>You&apos;ll meet</SectionLabel>
-          <div style={{ background: T.dark, borderRadius: 10, height: 130, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: T.dark, borderRadius: 10, height: narrow ? 100 : 130, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <MatteoArt size={80} />
           </div>
           <p style={{ margin: "8px 0 0", fontSize: 13, fontWeight: 500, color: T.ink }}>{SCENARIO.avatarName}</p>
@@ -72,7 +72,7 @@ function PrepScreen({ onStart, connecting }) {
             <p style={{ margin: "0 0 10px", fontSize: 12.5, color: T.sub }}>
               Tap to hear, then say each one at least once. Two minutes here makes the session ten times easier.
             </p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 18px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: narrow ? "1fr" : "1fr 1fr", gap: "6px 18px" }}>
               {shownPhrases.map((p) => (
                 <div
                   key={p.de}
@@ -113,7 +113,7 @@ function PrepScreen({ onStart, connecting }) {
         </div>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderTop: `1px solid ${T.line}` }}>
+      <div style={{ display: "flex", flexDirection: narrow ? "column" : "row", gap: narrow ? 10 : 0, alignItems: narrow ? "stretch" : "center", justifyContent: "space-between", padding: "14px 18px", borderTop: `1px solid ${T.line}` }}>
         <span style={{ fontSize: 12, color: T.faint }}>
           Say &quot;I don&apos;t understand&quot; any time — {SCENARIO.avatarName} will help
         </span>
@@ -136,6 +136,7 @@ export default function Home() {
   const [seconds, setSeconds] = useState(0);
   const [showTranscript, setShowTranscript] = useState(false);
   const [confidence, setConfidence] = useState(null); // null | 1-5 | "skipped"
+  const [narrow, setNarrow] = useState(false); // minimal responsive mode (<720px)
 
   const pcRef = useRef(null);
   const micRef = useRef(null);
@@ -145,6 +146,13 @@ export default function Home() {
   const nextId = useRef(1);
   const linesRef = useRef([]);
   const transcriptEndRef = useRef(null);
+
+  useEffect(() => {
+    const onResize = () => setNarrow(window.innerWidth < 720);
+    onResize();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   useEffect(() => {
     if (phase !== "live") return;
@@ -344,8 +352,8 @@ export default function Home() {
     );
 
   return (
-    <main style={{ fontFamily: font, background: T.panel, minHeight: "100vh", padding: 18 }}>
-      <div style={{ maxWidth: 860, margin: "0 auto", background: T.paper, border: `1px solid ${T.line}`, borderRadius: 14, overflow: "hidden" }}>
+    <main style={{ fontFamily: font, background: T.panel, minHeight: "100vh", padding: narrow ? 6 : 18 }}>
+      <div style={{ maxWidth: 860, margin: "0 auto", background: T.paper, border: `1px solid ${T.line}`, borderRadius: narrow ? 10 : 14, overflow: "hidden" }}>
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 18px", borderBottom: `1px solid ${T.line}` }}>
           <span style={{ fontSize: 19, fontWeight: 600, letterSpacing: "-0.02em", color: T.red }}>
@@ -356,7 +364,7 @@ export default function Home() {
         </div>
 
         {(phase === "prep" || phase === "connecting") && (
-          <PrepScreen onStart={start} connecting={phase === "connecting"} />
+          <PrepScreen onStart={start} connecting={phase === "connecting"} narrow={narrow} />
         )}
 
         {phase === "error" && (
@@ -369,9 +377,9 @@ export default function Home() {
         )}
 
         {phase === "live" && (
-          <div style={{ display: "grid", gridTemplateColumns: "230px 1fr" }}>
-            <div style={{ position: "relative", background: T.dark, minHeight: 420, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <MatteoArt size={140} />
+          <div style={{ display: "grid", gridTemplateColumns: narrow ? "1fr" : "230px 1fr" }}>
+            <div style={{ position: "relative", background: T.dark, minHeight: narrow ? 170 : 420, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <MatteoArt size={narrow ? 70 : 140} />
               <div style={{ position: "absolute", top: 10, left: 10, display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, color: T.cream, background: "rgba(255,255,255,0.12)", padding: "4px 10px", borderRadius: 999 }}>
                 {matteoSpeaking ? "🔊 Matteo is speaking" : "🎙 Your turn"}
               </div>
@@ -385,12 +393,12 @@ export default function Home() {
               </div>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", minHeight: 420 }}>
-              <div style={{ padding: "12px 18px 0" }}>
+            <div style={{ display: "flex", flexDirection: "column", minHeight: narrow ? 0 : 420 }}>
+              <div style={{ padding: "12px 18px 0", overflowX: narrow ? "auto" : "visible" }}>
                 <TickBar current={stage} label={STAGES[stage - 1]} />
               </div>
 
-              <div style={{ flex: 1, padding: "14px 18px", overflowY: "auto", maxHeight: 260 }}>
+              <div style={{ flex: 1, padding: "14px 18px", overflowY: "auto", maxHeight: narrow ? 300 : 260 }}>
                 {lines.map((l) => (
                   <div key={l.id} style={{ marginBottom: 13, textAlign: l.role === "user" ? "right" : "left" }}>
                     <p style={{ margin: 0, fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: l.role === "user" ? T.red : T.faint, fontWeight: 500 }}>
@@ -497,7 +505,7 @@ export default function Home() {
             )}
 
             {(sections || coachNote) && (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+              <div style={{ display: "grid", gridTemplateColumns: narrow ? "1fr" : "1fr 1fr" }}>
                 {coachNote && (
                   <div style={{ padding: "14px 18px", borderRight: `1px solid ${T.line}`, borderBottom: `1px solid ${T.line}` }}>
                     <SectionLabel>🎧 What Matteo heard</SectionLabel>
