@@ -1,3 +1,4 @@
+export const MATTEO_PROMPT_VERSION = "0.5";
 // Matteo system prompt — v0.5 (source of truth: System_Prompt_Municipal_Registration.md)
 // When the prompt changes, update BOTH the .md doc and this file.
 // v0.4: pre-reply self-check (one question, no narration), Swiss "ss" spelling.

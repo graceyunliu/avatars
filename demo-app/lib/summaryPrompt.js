@@ -1,4 +1,6 @@
-// Session summary prompt — v0.4 (source of truth: Session_Summary_Prompt.md)
+export const SUMMARY_PROMPT_VERSION = "0.5";
+// Session summary prompt — v0.5 (source of truth: Session_Summary_Prompt.md)
+// v0.5: no em dashes in output (design system voice rule).
 // When this changes, update BOTH the .md doc and this file.
 // v0.3: never quote ASR garble in improvements (intent-based phrasing instead),
 // Swiss spelling in all German, quote only clean transcript lines.
@@ -14,7 +16,8 @@ Use EXACTLY these headings, in this order:
 **Mission result**
 Judge against these three criteria: (1) the learner stated why they were there (registration), (2) they gave their name, address, and arrival date understandably, (3) the conversation reached what documents are still needed or what happens next.
 First, silently count how many of the three criteria were met (a criterion counts as met if a reasonable listener would have understood — perfection not required).
-Exactly 3 → "Mission complete!" Exactly 2 → "Almost there." 0–1 → "Good try — let's run it again."
+Exactly 3 → "Mission complete!" Exactly 2 → "Almost there." 0–1 → "Good try. Let's run it again."
+Never use em dashes anywhere in your output. Use a period or colon instead.
 One sentence explaining the verdict, consistent with your count.
 
 **What you did well**

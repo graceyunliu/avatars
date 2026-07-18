@@ -6,6 +6,8 @@ import { STAGES, detectStage } from "../lib/stages";
 import { T, font } from "../lib/theme";
 import { speak, prefetchAudio } from "../lib/audio";
 import { SectionLabel, TickBar, PhraseChip, RedButton, GhostButton, Bold, MatteoArt } from "../lib/ui";
+import { MATTEO_PROMPT_VERSION } from "../lib/prompt";
+import { SUMMARY_PROMPT_VERSION } from "../lib/summaryPrompt";
 
 // ---- Summary parsing: A4 prompt emits fixed **headings**; render them as cards
 function parseSummary(text) {
@@ -133,6 +135,7 @@ export default function Home() {
   const [matteoSpeaking, setMatteoSpeaking] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [showTranscript, setShowTranscript] = useState(false);
+  const [confidence, setConfidence] = useState(null); // null | 1-5 | "skipped"
 
   const pcRef = useRef(null);
   const micRef = useRef(null);
@@ -304,7 +307,24 @@ export default function Home() {
     setStage(1);
     setSeconds(0);
     setShowTranscript(false);
+    setConfidence(null);
     setPhase("prep");
+  }
+
+  // Confidence self-rating (pre-debrief by design: measured downstream of the
+  // session, upstream of the feedback that would anchor it). Version-tagged so
+  // ratings stay interpretable across prompt iterations; becomes real stored
+  // data when the learner profile (Module 10) exists.
+  function rate(value) {
+    setConfidence(value);
+    console.log("confidence_rating", {
+      value,
+      stageReached: stage,
+      sessionSeconds: seconds,
+      matteoPromptVersion: MATTEO_PROMPT_VERSION,
+      summaryPromptVersion: SUMMARY_PROMPT_VERSION,
+      at: new Date().toISOString(),
+    });
   }
 
   let sections = summary && summary !== "loading" && summary !== "failed" ? parseSummary(summary) : null;
@@ -403,14 +423,63 @@ export default function Home() {
           </div>
         )}
 
-        {phase === "ended" && (
+        {phase === "ended" && confidence === null && (
+          <div style={{ padding: "34px 18px 40px", textAlign: "center" }}>
+            <p style={{ margin: "0 0 2px", fontSize: 13, color: T.sub }}>
+              {summary === "loading" ? "✍️ Matteo is writing your notes…" : "Your feedback is ready."}
+            </p>
+            <h2 style={{ margin: "14px 0 16px", fontSize: 18, fontWeight: 500, color: T.ink }}>
+              How confident would you feel doing this at the real office?
+            </h2>
+            <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
+              {[1, 2, 3, 4, 5].map((v) => (
+                <button
+                  key={v}
+                  onClick={() => rate(v)}
+                  style={{
+                    width: 52,
+                    height: 52,
+                    fontSize: 16,
+                    borderRadius: 10,
+                    border: `1px solid ${T.line}`,
+                    background: T.paper,
+                    color: T.ink,
+                    cursor: "pointer",
+                    fontFamily: font,
+                  }}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+            <div style={{ display: "flex", justifyContent: "center", gap: 120, marginTop: 8 }}>
+              <span style={{ fontSize: 11.5, color: T.faint }}>I&apos;d panic</span>
+              <span style={{ fontSize: 11.5, color: T.faint }}>I&apos;ve got this</span>
+            </div>
+            <button
+              onClick={() => rate("skipped")}
+              style={{ marginTop: 18, fontSize: 12.5, color: T.sub, background: "none", border: "none", cursor: "pointer", fontFamily: font }}
+            >
+              Skip
+            </button>
+          </div>
+        )}
+
+        {phase === "ended" && confidence !== null && (
           <div>
             <div style={{ padding: "18px 18px 12px", borderBottom: `1px solid ${T.line}` }}>
               <SectionLabel color={T.red}>Session debrief</SectionLabel>
               <h2 style={{ margin: "0 0 8px", fontSize: 20, fontWeight: 500, color: T.ink }}>
                 {summary === "loading" ? "Wrapping up your session…" : verdict ? verdict.split(".")[0] + "." : "Session complete"}
               </h2>
-              <TickBar current={stage + 1} label={`${stage} of 8 steps`} />
+              <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+                <TickBar current={stage + 1} label={`${stage} of 8 steps`} />
+                {typeof confidence === "number" && (
+                  <span style={{ fontSize: 12, color: T.redDark, background: T.redBg, padding: "3px 10px", borderRadius: 999 }}>
+                    Your confidence: {confidence}/5
+                  </span>
+                )}
+              </div>
             </div>
 
             {summary === "loading" && (

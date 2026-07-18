@@ -61,7 +61,8 @@ System sans (Helvetica lineage). Weights 400/500/600 only (600 = wordmark only).
 - Encourage without lying: "Almost there" is honest; "Great job!" after a failed mission is not.
 - Help-seeking is framed as skill, never failure ("Asking to repeat is a skill").
 - Anxiety-reduction over cleverness: "Speaks slowly, happy to repeat" beats any tagline.
-- Verbs first on buttons: "Start the session", "Practice again", "End session" (not "call" — session is the product's word).
+- Verbs first on buttons: "Start the session", "Practice again", "End session". "Session" is the product's word, not "call".
+- No em dashes in UI copy. Use a period or a colon. "Almost there. You reached the documents step," never "Almost there — you reached the documents step."
 
 ## AI prompt block
 
