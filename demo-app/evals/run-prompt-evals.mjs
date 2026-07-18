@@ -44,38 +44,102 @@ const DRY_RUN = process.argv.includes("--dry-run");
 const MODEL = process.env.OPENAI_EVAL_MODEL || "gpt-4o";
 
 // ----------------------------------------------------------------------------
-// Load the LIVE prompt text (no duplication, no drift)
+// Load the LIVE prompt text (no duplication, no drift, no code execution)
 // ----------------------------------------------------------------------------
 // lib/prompt.js and lib/summaryPrompt.js are written as
 // `export const NAME = \`...\`;` — ES module syntax meant for Next.js's own
 // bundler. demo-app/package.json has no `"type": "module"`, so plain Node
 // treats a `.js` file as CommonJS by default, and CommonJS cannot parse an
 // `export` statement — a normal `import` of these files from a standalone
-// Node script would throw a SyntaxError. Rather than work around that by
-// copy-pasting the prompt text into this script (exactly what we must NOT
-// do — that's how eval and reality drift apart), we read the real file as
-// text and evaluate the exported template literal with the real JS engine.
-// Any edit made to lib/prompt.js or lib/summaryPrompt.js is picked up the
+// Node script would throw a SyntaxError.
+//
+// We used to work around that by reading the file as text and running the
+// exported statement through `new Function(...)`. That worked, but executing
+// content read from a source file is a pattern we avoid on principle, even
+// for a file we trust completely — it's one accidental edit away from
+// becoming an eval() of something we didn't intend to run. So instead this
+// extracts the string with plain text scanning: it never hands file content
+// to the JS engine as code, only ever reads it as data. Any edit made to
+// lib/prompt.js or lib/summaryPrompt.js is still picked up automatically the
 // next time this script runs — there is nowhere else the prompt text lives.
-function loadTemplateLiteralExport(filePath, exportName) {
+function extractTemplateLiteralExport(filePath, exportName) {
   const source = fs.readFileSync(filePath, "utf8");
-  const marker = `export const ${exportName} = `;
-  const start = source.indexOf(marker);
-  if (start === -1) {
-    throw new Error(`Could not find "export const ${exportName}" in ${filePath}`);
+
+  const openRe = new RegExp(`export const ${exportName}\\s*=\\s*\``);
+  const openMatch = source.match(openRe);
+  if (!openMatch) {
+    throw new Error(
+      `Could not find "export const ${exportName} = \`...\`" in ${filePath}. ` +
+        "Expected a plain template literal assigned directly to the export — " +
+        "if the file's shape changed, this extractor needs updating too."
+    );
   }
-  let statement = source.slice(start + marker.length).trimEnd();
-  if (statement.endsWith(";")) statement = statement.slice(0, -1);
-  // eslint-disable-next-line no-new-func -- trusted local source file we just read, not user input
-  const value = new Function(`return (${statement});`)();
-  if (typeof value !== "string" || value.trim() === "") {
-    throw new Error(`"${exportName}" in ${filePath} did not evaluate to a non-empty string`);
+  const bodyStart = openMatch.index + openMatch[0].length;
+
+  // Scan forward from the opening backtick by hand (rather than a single
+  // regex like `` `([\s\S]*?)` `` ) so an escaped backtick (\`) inside the
+  // literal can't fool a naive match into stopping early and silently
+  // handing back a truncated prompt.
+  let i = bodyStart;
+  let raw = "";
+  let closed = false;
+  while (i < source.length) {
+    const ch = source[i];
+    if (ch === "\\" && i + 1 < source.length) {
+      raw += ch + source[i + 1]; // keep the escape pair; unescaped once fully extracted
+      i += 2;
+      continue;
+    }
+    if (ch === "`") {
+      closed = true;
+      i += 1;
+      break;
+    }
+    raw += ch;
+    i += 1;
+  }
+  if (!closed) {
+    throw new Error(`Unterminated template literal for "${exportName}" in ${filePath}`);
+  }
+
+  // Template-literal interpolation (${...}) can't be resolved by text
+  // extraction — resolving it would mean actually running the expression,
+  // exactly the code-execution pattern this rewrite exists to avoid. Fail
+  // loudly instead of silently baking a literal "${...}" chunk into the
+  // prompt string that would then get sent to the model as-is.
+  const interpolationMatch = raw.match(/\$\{[^}]*\}/);
+  if (interpolationMatch) {
+    throw new Error(
+      `"${exportName}" in ${filePath} uses template-literal interpolation ` +
+        `(${interpolationMatch[0]}), which this text-based extractor does not ` +
+        "support. Refusing to produce a possibly-broken prompt string — make " +
+        "the exported value a fully static template literal, or extend " +
+        "extractTemplateLiteralExport() to resolve the interpolation safely."
+    );
+  }
+
+  const value = raw.replace(/\\`/g, "`").replace(/\\\\/g, "\\").replace(/\\\$/g, "$");
+  if (value.trim() === "") {
+    throw new Error(`"${exportName}" in ${filePath} extracted to an empty string`);
   }
   return value;
 }
 
-const MATTEO_PROMPT = loadTemplateLiteralExport(PROMPT_JS_PATH, "MATTEO_PROMPT");
-const SUMMARY_PROMPT = loadTemplateLiteralExport(SUMMARY_PROMPT_JS_PATH, "SUMMARY_PROMPT");
+const MATTEO_PROMPT = extractTemplateLiteralExport(PROMPT_JS_PATH, "MATTEO_PROMPT");
+const SUMMARY_PROMPT = extractTemplateLiteralExport(SUMMARY_PROMPT_JS_PATH, "SUMMARY_PROMPT");
+
+if (DRY_RUN) {
+  // Sanity check: confirm text extraction didn't truncate or mangle
+  // anything, by eyeballing length + head/tail against what the old
+  // `new Function`-based loader used to produce.
+  const preview = (s) => `${JSON.stringify(s.slice(0, 100))} ... ${JSON.stringify(s.slice(-100))}`;
+  console.log("--- Extraction sanity check (--dry-run only) ---");
+  console.log(`MATTEO_PROMPT: ${MATTEO_PROMPT.length} chars`);
+  console.log(`  ${preview(MATTEO_PROMPT)}`);
+  console.log(`SUMMARY_PROMPT: ${SUMMARY_PROMPT.length} chars`);
+  console.log(`  ${preview(SUMMARY_PROMPT)}`);
+  console.log("--------------------------------------------------");
+}
 
 // ----------------------------------------------------------------------------
 // Reuse the app's existing OPENAI_API_KEY from .env.local — no new env var
